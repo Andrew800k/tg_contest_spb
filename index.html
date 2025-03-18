@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
     body {
+      background-color: #ffffff !important;
       text-align: center;
       font-family: Arial, sans-serif;
       display: flex;
@@ -21,6 +22,7 @@
       margin: 0;
       overflow: hidden;
     }
+
     /* Затемнение экрана при показе CAPTCHA */
     #captcha-container {
       position: fixed;
@@ -153,8 +155,8 @@
           const firstName = user.first_name || null;
           const lastName = user.last_name || null;
           const statusElement = document.getElementById("status");
-        
-          // Массив сообщений для каждой попытки
+          
+          // Сообщения для каждой попытки с эмодзи
           const attemptMessages = [
             "🔍 Сверяем данные…",
             "🤔 Считаем участников…",
@@ -162,19 +164,19 @@
             "⏳ Ещё одна попытка…",
             "🚀 Завершаем проверку…"
           ];
-        
+          
           const maxAttempts = 5;
           let attempt = 0;
           let response, data;
           let success = false;
           let backoff = 500; // начальная задержка 500 мс
-        
+          
           while (attempt < maxAttempts && !success) {
             // Обновляем сообщение для текущей попытки
             statusElement.innerHTML = attemptMessages[attempt];
             statusElement.style.opacity = "1";
             console.log(`Попытка ${attempt + 1}: ${attemptMessages[attempt]}`);
-        
+            
             try {
               response = await fetch(CONFIG.END_POINT, {
                 method: "POST",
@@ -188,8 +190,7 @@
               }
               
               data = await response.json();
-              success = true; // если запрос успешен, выходим из цикла
-              break;
+              success = true;
             } catch (error) {
               console.error(`Попытка ${attempt + 1} не удалась:`, error);
               attempt++;
@@ -198,40 +199,14 @@
                 await new Promise(resolve => setTimeout(resolve, backoff + Math.random() * 200));
                 backoff *= 2;
               } else {
-                // Если все попытки исчерпаны
                 statusElement.innerHTML = "⏳ Ошибка запроса. Повторите попытку позже.";
                 statusElement.style.opacity = "1";
                 return;
               }
             }
-        
-          // Обработка ответа, если запрос успешен
-          if (success && data) {
-            if (data.status === "finished") {
-              statusElement.innerHTML = "Конкурс завершён 🔚";
-            } else if (data.status === "allowed") {
-              statusElement.innerHTML = "✅ Условия выполнены";
-              Telegram.WebApp.HapticFeedback.impactOccurred("medium");
-              confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            } else if (data.status === "denied") {
-              statusElement.innerHTML = "❌ Условия не выполнены";
-              Telegram.WebApp.HapticFeedback.notificationOccurred("error");
-              confetti({
-                particleCount: 80,
-                spread: 60,
-                startVelocity: -40,
-                gravity: 1.2,
-                origin: { y: -0.2 },
-                colors: ['#ff0000', '#ff4444', '#cc0000']
-              });
-              statusElement.style.animation = "shake 0.3s ease-in-out 2";
-            }
-            statusElement.style.opacity = "1";
           }
-        }
-
           
-          // Обработка ответа от сервера
+          // Обработка ответа от сервера (один раз после успешного запроса)
           if (data.status === "finished") {
             statusElement.innerHTML = "Конкурс завершён 🔚";
           } else if (data.status === "allowed") {
@@ -253,6 +228,7 @@
           }
           statusElement.style.opacity = "1";
         }
+
 
         
         window.unlockSite = unlockSite;
