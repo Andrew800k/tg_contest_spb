@@ -1,5 +1,5 @@
 const CONFIG = {
-    END_POINT: "http://5.181.253.53/backend9" 
+    END_POINT: "http://tgcontest.duckdns.org/backend9" 
 };
 
 // Экспортируем объект CONFIG
