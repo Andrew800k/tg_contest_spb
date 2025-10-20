@@ -129,7 +129,8 @@
             startAppParam,
             username: user.username || null,
             firstName: user.first_name || null,
-            lastName: user.last_name || null
+            lastName: user.last_name || null,
+            initData: Telegram.WebApp.initData  // ← Добавляем подписанные данные для проверки
           };
 
           const msgs = [
