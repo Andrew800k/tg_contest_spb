@@ -114,6 +114,24 @@
       }
     }
 
+    /* Анимация свечения для капчи */
+    @keyframes glow-success {
+      0% { box-shadow: 0 0 0 0 rgba(46, 213, 115, 0); }
+      50% { box-shadow: 0 0 40px 20px rgba(46, 213, 115, 0.6); }
+      100% { box-shadow: 0 0 0 0 rgba(46, 213, 115, 0); }
+    }
+    @keyframes glow-error {
+      0% { box-shadow: 0 0 0 0 rgba(235, 77, 75, 0); }
+      50% { box-shadow: 0 0 40px 20px rgba(235, 77, 75, 0.6); }
+      100% { box-shadow: 0 0 0 0 rgba(235, 77, 75, 0); }
+    }
+    .captcha-glow-success {
+      animation: glow-success 1s ease-out;
+    }
+    .captcha-glow-error {
+      animation: glow-error 1s ease-out;
+    }
+
     /* Контейнер для анимации */
     #animation-wrapper {
       display: flex;
@@ -247,8 +265,10 @@
               if (currentStep === sequence.length) {
                 // Капча пройдена!
                 Telegram.WebApp.HapticFeedback.notificationOccurred("success");
-                confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-                setTimeout(() => onSuccess(), 500);
+                // Зелёное свечение вместо конфетти
+                captchaContainer.classList.add('captcha-glow-success');
+                progressEl.textContent = "✅ Проверка пройдена!";
+                setTimeout(() => onSuccess(), 1000);
               }
             } else {
               // Неправильно!
@@ -256,7 +276,12 @@
               Telegram.WebApp.HapticFeedback.notificationOccurred("error");
               attempts--;
               
-              setTimeout(() => btnElement.classList.remove('wrong'), 300);
+              // Красное свечение при ошибке
+              captchaContainer.classList.add('captcha-glow-error');
+              setTimeout(() => {
+                btnElement.classList.remove('wrong');
+                captchaContainer.classList.remove('captcha-glow-error');
+              }, 300);
 
               if (attempts <= 0) {
                 // Попытки закончились - сброс
