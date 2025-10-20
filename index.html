@@ -31,6 +31,83 @@
       }
     }
 
+    /* Капча */
+    #captcha-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+    #captcha-instruction {
+      font-size: clamp(16px, 4vw, 22px);
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #captcha-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      max-width: 300px;
+      width: 100%;
+    }
+    .captcha-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: clamp(24px, 6vw, 36px);
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .captcha-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .captcha-btn.correct {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      animation: pulse 0.3s ease;
+    }
+    .captcha-btn.wrong {
+      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      animation: shake 0.3s ease;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+    #captcha-progress {
+      font-size: clamp(14px, 3vw, 18px);
+      color: inherit;
+      opacity: 0.8;
+    }
+    #captcha-sequence {
+      font-size: clamp(18px, 5vw, 28px);
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 12px;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @media (prefers-color-scheme: dark) {
+      #captcha-sequence {
+        background: rgba(255,255,255,0.05);
+      }
+    }
+
     /* Контейнер для анимации */
     #animation-wrapper {
       display: flex;
@@ -69,6 +146,14 @@
 </head>
 <body>
 
+  <!-- Контейнер для капчи -->
+  <div id="captcha-container" style="display: none;">
+    <div id="captcha-instruction">Нажмите кнопки по порядку:</div>
+    <div id="captcha-sequence"></div>
+    <div id="captcha-buttons"></div>
+    <div id="captcha-progress"></div>
+  </div>
+
   <!-- Контейнер для анимации -->
   <div id="animation-wrapper">
     <div id="animation-container"></div>
@@ -96,9 +181,7 @@
                               null;
 
         if (urlParams.get("web_app_request_write_access") === "1") {
-          Telegram.WebApp.requestWriteAccess((response) => {
-            console.log("Write access:", response.status);
-          });
+          Telegram.WebApp.requestWriteAccess();
         }
 
         const animationContainer = document.getElementById("animation-container");
@@ -110,10 +193,88 @@
           path: "cat.json"
         });
 
-        // Сразу запускаем анимацию и проверку доступа
-        animationContainer.style.display = "block";
-        anim.play();
-        checkAccess(startAppParam);
+        // Функция капчи - нажать кнопки в правильном порядке
+        function showCaptcha(onSuccess) {
+          const captchaContainer = document.getElementById("captcha-container");
+          const sequenceEl = document.getElementById("captcha-sequence");
+          const buttonsEl = document.getElementById("captcha-buttons");
+          const progressEl = document.getElementById("captcha-progress");
+
+          // Генерируем случайную последовательность из эмодзи
+          const emojis = ["🎯", "🎪", "🎨", "🎭", "🎬", "🎮"];
+          const shuffled = emojis.sort(() => Math.random() - 0.5);
+          const sequence = shuffled.slice(0, 4); // 4 кнопки
+          const buttons = [...sequence].sort(() => Math.random() - 0.5); // Перемешиваем для показа
+          
+          let currentStep = 0;
+          let attempts = 3;
+
+          // Показываем последовательность
+          sequenceEl.innerHTML = sequence.map((e, i) => 
+            `<span style="font-size: 28px; margin: 0 5px;">${i < currentStep ? '✅' : e}</span>`
+          ).join('');
+          
+          // Создаем кнопки
+          buttonsEl.innerHTML = '';
+          buttons.forEach(emoji => {
+            const btn = document.createElement('button');
+            btn.className = 'captcha-btn';
+            btn.textContent = emoji;
+            btn.onclick = () => handleClick(emoji, btn);
+            buttonsEl.appendChild(btn);
+          });
+
+          progressEl.textContent = `Осталось попыток: ${attempts}`;
+          captchaContainer.style.display = "flex";
+
+          function handleClick(emoji, btnElement) {
+            if (emoji === sequence[currentStep]) {
+              // Правильно!
+              btnElement.classList.add('correct');
+              Telegram.WebApp.HapticFeedback.impactOccurred("light");
+              currentStep++;
+              
+              sequenceEl.innerHTML = sequence.map((e, i) => 
+                `<span style="font-size: 28px; margin: 0 5px;">${i < currentStep ? '✅' : e}</span>`
+              ).join('');
+
+              if (currentStep === sequence.length) {
+                // Капча пройдена!
+                Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                setTimeout(() => onSuccess(), 500);
+              }
+            } else {
+              // Неправильно!
+              btnElement.classList.add('wrong');
+              Telegram.WebApp.HapticFeedback.notificationOccurred("error");
+              attempts--;
+              
+              setTimeout(() => btnElement.classList.remove('wrong'), 300);
+
+              if (attempts <= 0) {
+                // Попытки закончились - сброс
+                progressEl.textContent = "❌ Попробуйте еще раз...";
+                setTimeout(() => {
+                  currentStep = 0;
+                  attempts = 3;
+                  showCaptcha(onSuccess);
+                }, 1500);
+              } else {
+                progressEl.textContent = `Осталось попыток: ${attempts}`;
+              }
+            }
+          }
+        }
+
+        // СНАЧАЛА показываем капчу, ПОТОМ анимацию + проверку
+        showCaptcha(() => {
+          // После успешного прохождения капчи
+          document.getElementById("captcha-container").style.display = "none";
+          animationContainer.style.display = "block";
+          anim.play();
+          checkAccess(startAppParam);
+        });
 
         async function checkAccess(startAppParam) {
           const statusEl = document.getElementById("status");
@@ -166,23 +327,17 @@
             }
           }
 
-          console.log("Ответ от сервера:", data);
-          console.log("Status:", data.status);
-
           // Останавливаем анимацию
           anim.stop();
           animationContainer.style.display = "none";
 
           if (data.status === "finished") {
-            console.log("Конкурс завершён");
             statusEl.innerHTML = "Конкурс завершён 🔚";
           } else if (data.status === "allowed") {
-            console.log("Участие подтверждено!");
             statusEl.innerHTML = "✅ Условия подписки выполнены";
             Telegram.WebApp.HapticFeedback.impactOccurred("medium");
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
           } else {
-            console.log("Участие НЕ подтверждено. Status:", data.status);
             statusEl.innerHTML = "❌ Условия подписки не выполнены";
             Telegram.WebApp.HapticFeedback.notificationOccurred("error");
             confetti({
