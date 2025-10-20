@@ -47,7 +47,8 @@
     }
     #captcha-buttons {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
       gap: 15px;
       max-width: 280px;
       width: 100%;
@@ -59,11 +60,16 @@
       color: white;
       font-size: clamp(24px, 6vw, 36px);
       padding: 20px;
+      aspect-ratio: 1;
+      min-height: 80px;
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 4px 15px rgba(0,0,0,0.2);
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .captcha-btn:active {
       transform: scale(0.95);
