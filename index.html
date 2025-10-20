@@ -165,13 +165,23 @@
             }
           }
 
+          console.log("Ответ от сервера:", data);
+          console.log("Status:", data.status);
+
+          // Останавливаем анимацию
+          anim.stop();
+          animationContainer.style.display = "none";
+
           if (data.status === "finished") {
+            console.log("Конкурс завершён");
             statusEl.innerHTML = "Конкурс завершён 🔚";
           } else if (data.status === "allowed") {
+            console.log("Участие подтверждено!");
             statusEl.innerHTML = "✅ Условия подписки выполнены";
             Telegram.WebApp.HapticFeedback.impactOccurred("medium");
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
           } else {
+            console.log("Участие НЕ подтверждено. Status:", data.status);
             statusEl.innerHTML = "❌ Условия подписки не выполнены";
             Telegram.WebApp.HapticFeedback.notificationOccurred("error");
             confetti({
